@@ -113,7 +113,7 @@ def first():
 @app.route('/api', methods=['GET'])
 def api_route():
 
-    return jsonify({'message': '/API endpoint called'}), 200
+    return jsonify({'message': '/API endpoint called !'}), 200
 
 
 @app.route('/api/grade-submission', methods=['POST'])
