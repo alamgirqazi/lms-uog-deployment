@@ -36,6 +36,7 @@ jobs:
           context: ./backend-flask
           platforms: linux/amd64,linux/arm64
           push: true
+          no-cache: true
           tags: |
             ${{ env.DOCKER_BACKEND_IMAGE }}:2.0.0
             ${{ env.DOCKER_BACKEND_IMAGE }}:${{ github.sha }}
@@ -48,6 +49,7 @@ jobs:
           context: ./frontend-react
           platforms: linux/amd64,linux/arm64
           push: true
+          no-cache: true
           build-args: |
             REACT_APP_API_URL=${{ env.REACT_APP_API_URL }}
           tags: |
@@ -78,7 +80,12 @@ jobs:
       - name: Deploy to server
         run: |
           ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} '
+            echo "Stopping existing containers..."
+            docker-compose down
+            echo "Removing old images..."
+            docker system prune -af
+            echo "Pulling new images..."
             docker-compose pull
+            echo "Starting new containers..."
             docker-compose up -d --force-recreate
-            docker image prune -f
-          '
+            echo "Deployment complete!"          '
