@@ -2,7 +2,7 @@ name: SonarQube Analysis
 
 on:
   pull_request:
-    branches: [ production, dev, test ]
+    branches: [ production, dev, test, main ]
     types: [opened, synchronize, reopened]
 
 jobs:
