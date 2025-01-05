@@ -152,12 +152,18 @@ def test_enroll_in_course(client):
                                  )
     token = login_response.get_json()['token']
 
-    # Create a course (need a teacher for this)
+    # Create a teacher first
     with app.app_context():
         teacher = User(username='teacher1', password='pass123', role='teacher')
         db.session.add(teacher)
-        course = Course(title='Test Course',
-                        description='Test', teacher_id=teacher.id)
+        db.session.commit()  # Commit to get the teacher.id
+
+        # Now create the course with the valid teacher_id
+        course = Course(
+            title='Test Course',
+            description='Test',
+            teacher_id=teacher.id  # Now teacher.id will be valid
+        )
         db.session.add(course)
         db.session.commit()
         course_id = course.id
