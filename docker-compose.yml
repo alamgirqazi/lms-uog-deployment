@@ -1,14 +1,15 @@
+
 services:
   backend-flask:
-    image: aqaziuog/lms-backend:2.0.0  # Replace with your Docker Hub username
-    pull_policy: always
+    image: aqaziuog/lms-backend:2.0.0
     ports:
       - "4000:4000"
     environment:
       - FLASK_ENV=development
       - FLASK_APP=app.py
-    networks:
-      - app-network
+      - NEW_RELIC_LICENSE_KEY=${NEW_RELIC_LICENSE_KEY}
+      - NEW_RELIC_APP_NAME=${NEW_RELIC_APP_NAME:-LMS System - Backend}
+      - NEW_RELIC_ENVIRONMENT=${NEW_RELIC_ENVIRONMENT:-production}
 
   frontend:
     image: aqaziuog/lms-frontend:2.0.0  # Replace with your Docker Hub username
