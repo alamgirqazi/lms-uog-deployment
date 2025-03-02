@@ -1,0 +1,103 @@
+name: New Relic Monitoring
+
+on:
+  push:
+    branches: [ main, dev ]
+  pull_request:
+    branches: [ main, dev ]
+
+env:
+  NEW_RELIC_APP_NAME: "LMS System"
+  NEW_RELIC_DISTRIBUTED_TRACING_ENABLED: true
+
+jobs:
+  setup-new-relic:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Backend New Relic config
+        run: |
+          cat > backend-flask/newrelic.ini << EOF
+          [newrelic]
+          license_key = ${{ secrets.NEW_RELIC_LICENSE_KEY }}
+          app_name = ${{ env.NEW_RELIC_APP_NAME }} - Backend
+          monitor_mode = true
+          log_level = info
+          ssl = true
+          high_security = false
+          transaction_tracer.enabled = true
+          transaction_tracer.transaction_threshold = apdex_f
+          transaction_tracer.record_sql = obfuscated
+          transaction_tracer.stack_trace_threshold = 0.5
+          transaction_tracer.explain_enabled = true
+          transaction_tracer.explain_threshold = 0.5
+          error_collector.enabled = true
+          error_collector.ignore_errors =
+          browser_monitoring.auto_instrument = true
+          thread_profiler.enabled = true
+          distributed_tracing.enabled = ${{ env.NEW_RELIC_DISTRIBUTED_TRACING_ENABLED }}
+          EOF
+
+      - name: Update Backend requirements
+        run: |
+          if ! grep -q "newrelic" backend-flask/requirements.txt; then
+            echo "newrelic>=9.0.0" >> backend-flask/requirements.txt
+          fi
+
+      - name: Set up Frontend New Relic Browser script
+        run: |
+          # Create a simple New Relic Browser loader script
+          mkdir -p frontend-react/public/js
+          cat > frontend-react/public/js/newrelic-browser.js << EOF
+          // New Relic Browser script will be loaded via the New Relic Browser agent
+          // This is a placeholder script - the actual script will be injected by the backend
+          console.log('New Relic Browser monitoring initialized');
+          EOF
+
+      - name: Update Frontend index.html
+        run: |
+          # Insert New Relic browser script reference just before closing </head> tag
+          sed -i 's/<\/head>/<script type="text\/javascript" src="\/js\/newrelic-browser.js"><\/script>\n  <\/head>/g' frontend-react/public/index.html
+
+      - name: Update Backend Dockerfile
+        run: |
+          cat > backend-flask/Dockerfile << EOF
+          FROM python:3.10-slim
+
+          WORKDIR /app
+
+          # Install required packages
+          COPY requirements.txt .
+          RUN pip install --no-cache-dir -r requirements.txt
+
+          # Copy application files
+          COPY . .
+
+          # Environment variables for New Relic
+          ENV NEW_RELIC_CONFIG_FILE=newrelic.ini
+          ENV NEW_RELIC_ENVIRONMENT=production
+          ENV NEW_RELIC_LICENSE_KEY=${{ secrets.NEW_RELIC_LICENSE_KEY }}
+          ENV NEW_RELIC_APP_NAME=${{ env.NEW_RELIC_APP_NAME }} - Backend
+          ENV NEW_RELIC_DISTRIBUTED_TRACING_ENABLED=${{ env.NEW_RELIC_DISTRIBUTED_TRACING_ENABLED }}
+
+          # Expose the application port
+          EXPOSE 4000
+
+          # Command to run the application with New Relic
+          CMD ["newrelic-admin", "run-program", "python", "app.py"]
+          EOF
+
+      - name: Update Docker Compose
+        run: |
+          sed -i '/backend-flask:/,/networks:/ s/environment:/environment:\n      - NEW_RELIC_LICENSE_KEY=${{ secrets.NEW_RELIC_LICENSE_KEY }}\n      - NEW_RELIC_APP_NAME=${{ env.NEW_RELIC_APP_NAME }} - Backend\n      - NEW_RELIC_DISTRIBUTED_TRACING_ENABLED=${{ env.NEW_RELIC_DISTRIBUTED_TRACING_ENABLED }}/g' docker-compose.yml
+
+      - name: Commit and push changes if on dev or main
+        if: github.event_name == 'push' && (github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/main')
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add backend-flask/newrelic.ini backend-flask/requirements.txt frontend-react/public/js/newrelic-browser.js backend-flask/Dockerfile docker-compose.yml frontend-react/public/index.html
+          git commit -m "Add New Relic monitoring integration" || echo "No changes to commit"
+          git push
