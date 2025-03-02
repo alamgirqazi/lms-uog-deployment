@@ -14,7 +14,7 @@ try:
         config_file='newrelic.ini',
         environment=None,
         log_file='stderr',
-        log_level='info'
+        log_level='INFO'
     )
 except ImportError:
     print("New Relic import failed - monitoring disabled")
