@@ -8,7 +8,6 @@ env:
   DOCKER_BACKEND_IMAGE: ${{ secrets.DOCKER_USERNAME }}/lms-backend
   DOCKER_FRONTEND_IMAGE: ${{ secrets.DOCKER_USERNAME }}/lms-frontend
   REACT_APP_API_URL: http://${{ secrets.SERVER_IP }}
-  NEW_RELIC_LICENSE_KEY: ${{ secrets.NEW_RELIC_LICENSE_KEY }}
 
 jobs:
   build-and-push:
