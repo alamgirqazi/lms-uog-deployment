@@ -75,6 +75,12 @@ jobs:
         run: |
           scp docker-compose.yml ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }}:~/docker-compose.yml
 
+
+      - name: Copy docker-compose.elk.yml file
+        run: |
+          scp docker-compose.elk.yml ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }}:~/docker-compose.elk.yml
+
+
       - name: Deploy to server
         run: |
           ssh ${{ secrets.SERVER_USER }}@${{ secrets.SERVER_IP }} '
